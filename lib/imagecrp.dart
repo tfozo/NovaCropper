@@ -22,6 +22,8 @@ class _ImageCropperState extends State<ImageCropper> {
   Size? _imageSize;
   Rect? _imageRect;
   bool isDragging = false;
+  bool isResizing = false;
+  String? resizeHandle;
 
   @override
   void initState() {
@@ -85,7 +87,10 @@ class _ImageCropperState extends State<ImageCropper> {
         cropRect = Rect.fromPoints(_startingFocalPoint!, _startingFocalPoint!);
       });
     } else {
-      if (_isInsideCropRect(details.localPosition)) {
+      resizeHandle = _detectResizeHandle(details.localPosition);
+      if (resizeHandle != null) {
+        isResizing = true;
+      } else if (_isInsideCropRect(details.localPosition)) {
         isDragging = true;
       }
     }
@@ -96,6 +101,8 @@ class _ImageCropperState extends State<ImageCropper> {
       if (isDragging) {
         final Offset delta = details.delta;
         cropRect = cropRect!.shift(delta);
+      } else if (isResizing) {
+        _resizeCropRect(details.localPosition);
       } else {
         cropRect = Rect.fromPoints(_startingFocalPoint!, details.localPosition);
       }
@@ -104,6 +111,9 @@ class _ImageCropperState extends State<ImageCropper> {
 
   void _handlePanEnd(DragEndDetails details) {
     isDragging = false;
+    isResizing = false;
+    resizeHandle = null;
+
     if (_imageRect == null || cropRect == null) return;
 
     setState(() {
@@ -131,6 +141,66 @@ class _ImageCropperState extends State<ImageCropper> {
 
   bool _isInsideCropRect(Offset point) {
     return cropRect != null && cropRect!.contains(point);
+  }
+
+  String? _detectResizeHandle(Offset point) {
+    const double handleSize = 20.0;
+    final handles = {
+      'topLeft': cropRect!.topLeft,
+      'topRight': cropRect!.topRight,
+      'bottomLeft': cropRect!.bottomLeft,
+      'bottomRight': cropRect!.bottomRight,
+      'centerLeft': cropRect!.centerLeft,
+      'centerRight': cropRect!.centerRight,
+      'topCenter': cropRect!.topCenter,
+      'bottomCenter': cropRect!.bottomCenter,
+    };
+
+    for (var handle in handles.entries) {
+      if ((handle.value - point).distance <= handleSize) {
+        return handle.key;
+      }
+    }
+    return null;
+  }
+
+  void _resizeCropRect(Offset point) {
+    setState(() {
+      switch (resizeHandle) {
+        case 'topLeft':
+          cropRect = Rect.fromLTRB(
+              point.dx, point.dy, cropRect!.right, cropRect!.bottom);
+          break;
+        case 'topRight':
+          cropRect = Rect.fromLTRB(
+              cropRect!.left, point.dy, point.dx, cropRect!.bottom);
+          break;
+        case 'bottomLeft':
+          cropRect =
+              Rect.fromLTRB(point.dx, cropRect!.top, cropRect!.right, point.dy);
+          break;
+        case 'bottomRight':
+          cropRect =
+              Rect.fromLTRB(cropRect!.left, cropRect!.top, point.dx, point.dy);
+          break;
+        case 'centerLeft':
+          cropRect = Rect.fromLTRB(
+              point.dx, cropRect!.top, cropRect!.right, cropRect!.bottom);
+          break;
+        case 'centerRight':
+          cropRect = Rect.fromLTRB(
+              cropRect!.left, cropRect!.top, point.dx, cropRect!.bottom);
+          break;
+        case 'topCenter':
+          cropRect = Rect.fromLTRB(
+              cropRect!.left, point.dy, cropRect!.right, cropRect!.bottom);
+          break;
+        case 'bottomCenter':
+          cropRect = Rect.fromLTRB(
+              cropRect!.left, cropRect!.top, cropRect!.right, point.dy);
+          break;
+      }
+    });
   }
 
   void _cropImage(BuildContext context) async {
