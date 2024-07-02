@@ -268,16 +268,34 @@ class _CropPainter extends CustomPainter {
 
     Rect cropRect = this.cropRect ?? _getInitialCropRect(dst);
 
+    _drawOverlay(canvas, size, cropRect);
+
     _drawGrid(canvas, cropRect);
 
     final cropPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.red
+      ..color = Colors.white
       ..strokeWidth = 2.0;
     canvas.drawRect(cropRect, cropPaint);
 
     // Draw drag handles
     _drawHandles(canvas, cropRect);
+  }
+
+  void _drawOverlay(Canvas canvas, Size size, Rect cropRect) {
+    final overlayPaint = Paint()..color = Colors.black.withOpacity(0.5);
+
+    canvas.drawRect(
+        Rect.fromLTRB(0, 0, size.width, cropRect.top), overlayPaint);
+    canvas.drawRect(Rect.fromLTRB(0, cropRect.bottom, size.width, size.height),
+        overlayPaint);
+    canvas.drawRect(
+        Rect.fromLTRB(0, cropRect.top, cropRect.left, cropRect.bottom),
+        overlayPaint);
+    canvas.drawRect(
+        Rect.fromLTRB(
+            cropRect.right, cropRect.top, size.width, cropRect.bottom),
+        overlayPaint);
   }
 
   void _drawGrid(Canvas canvas, Rect rect) {
@@ -300,7 +318,7 @@ class _CropPainter extends CustomPainter {
     const handleSize = 10.0;
     final handlePaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.red;
+      ..color = Colors.white;
 
     final handles = [
       rect.topLeft,
